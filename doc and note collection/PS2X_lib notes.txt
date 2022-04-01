@@ -1,0 +1,122 @@
+
+/******************************************************************
+*  Super amazing PS2 controller Arduino Library v1.9.1
+*
+*    Original code by Shutter on Arduino Forums
+*
+*    Revamped, made into lib by and supporting continued development:
+*              Bill Porter
+*              www.billporter.info
+*
+*	 Contributers:
+*		Eric Wetzel (thewetzel@gmail.com)
+*		Kurt Eckhardt
+*
+/******************************************************************
+
+                 PS2data[21]
+      Header
+PSdata[0]    0x01  cmd always start with 0x01 Data always 0xFF
+PSdata[1]    0x4_:Digital 0x7_:Dual shock 0xF_:Escape     high nybble is device mode
+             0x_1 0x_3 0X_9      low nybble how many 16 bit words follow the header
+PSdata[2]    0x00 always
+------------------------------------------------------------------------------------ 
+              cmd/data     
+PSdata[3]     CMD Can be configured to control the motors  / DATA buttons 
+PSdata[4]     CMD Can be configured to control the motors /  DATA Each button state is mapped to bit
+ 1=off 0=press
+button	   squ X Cir Tri R1 L1 R2  L2  |   L  D  R  U  Str R3 L3 Sel
+byte.bit 4. 7  6  5   4  3  2  1   0   |3. 7  6  5  4   3  2  1   0   
+
+PSdata[5] PSS_RX  R-stick X 
+PSdata[6] PSS_RY  R-stick Y
+PSdata[7] PSS_LX  L-stick X
+PSdata[8] PSS_LY  L-stick Y
+
+    button mask on PSdata[4][3] 
+		         hex         bin
+				------  -------------------
+PSB_SELECT      0x0001  0000 0000 0000 0001
+PSB_L3          0x0002  0000 0000 0000 0010
+PSB_R3          0x0004  0000 0000 0000 0100
+PSB_START       0x0008  0000 0000 0000 1000
+PSB_PAD_UP      0x0010  0000 0000 0001 0000 
+PSB_PAD_RIGHT   0x0020  0000 0000 0010 0000 
+PSB_PAD_DOWN    0x0040  0000 0000 0100 0000 
+PSB_PAD_LEFT    0x0080  0000 0000 1000 0000 
+PSB_L2          0x0100  0000 0001 0000 0000
+PSB_R2          0x0200  0000 0010 0000 0000
+PSB_L1          0x0400  0000 0100 0000 0000
+PSB_R1          0x0800  0000 1000 0000 0000
+PSB_TRIANGLE    0x1000  0001 0000 0000 0000   PSB_GREEN  
+PSB_CIRCLE      0x2000  0010 0000 0000 0000   PSB_RED    
+PSB_CROSS       0x4000  0100 0000 0000 0000   PSB_BLUE   
+PSB_SQUARE      0x8000  1000 0000 0000 0000   PSB_PINK   
+
+PSDATA[9]-PSDATA[20] analog buttons
+PSAB_PAD_RIGHT    9
+PSAB_PAD_LEFT    10
+PSAB_PAD_UP      11
+PSAB_PAD_DOWN    12
+PSAB_GREEN  PSAB_TRIANGLE 13
+PSAB_RED    PSAB_CIRCLE   14
+PSAB_BLUE   PSAB_CROSS    15
+PSAB_PINK   PSAB_SQUARE   16
+PSAB_L1          17
+PSAB_R1          18
+PSAB_L2          19
+PSAB_R2          20
+
+class PS2X
+
+    Button(PSB_button) will be TRUE if PSB_button is being pressed
+    Button(PSB_button) will be TRUE as long as PSB_button is pressed 
+ 
+    ButtonDataByte() 
+	
+    NewButtonState()  return will be TRUE if any PSB_button vhanged state
+    NewButtonState(PSB_button)  return will be TRUE if PSB_button was JUST pressed OR released
+
+    ButtonPressed(PSB_button) will be TRUE if PSB_button was JUST pressed
+ 
+    ButtonReleased(PSB_button) will be TRUE if PSB_button was JUST released
+ 
+    Analog(PSAB_ or PSS_ ) returns the analog value of PSAB_ PSS_ [numbered 5-8,9-16]
+ 
+    read_gamepad() calls read_gamepad(false, 0x00)
+    read_gamepad(motor1, motor2) 1 = OK = analog mode,  0 = NOK
+
+    readType() returns controller type
+       0="Unknown Controller type found "
+       1="DualShock Controller found "
+       2="GuitarHero Controller found "
+	   3="Wireless Sony DualShock Controller found "
+
+	config_gamepad(clk, cmd, att, dat) <calls config_gamepad with default "off" pressure rumble
+	config_gamepad(clk, cmd, att, dat, pressures, rumble)  
+	  returns
+		  0="Found Controller, configured successful"
+		  1="No controller found, check wiring"
+		  2="Controller found but not accepting commands."
+		  3="Controller refusing to enter Pressures mode"
+	  
+    enableRumble() turns on motor1 & 2
+    
+	enablePressures() returns 0-off, 1-on
+      
+    reconfig_gamepad() tries to put gamepad back into analog mode
+
+You must Read Gamepad to get new values and set vibration values ps2x.read_gamepad(small 
+motor on/off, larger motor strenght from 0-255) if you don't enable the rumble, use 
+ps2x.read_gamepad(); with no values You should call this at least once a second 
+
+Command to read the pressure of the buttons, not just press/!press
+
+— 0x42 Example Poll (loop this)
+Command (hex) |01	42	00 |WW	 YY	|00	00	00	00 |00  00	00	00	00	00	00	00	00	00	00	00
+Data 	(hex) |FF	79	5A |FF	 FF	|7F	7F	7F	7F |00	00	00	00	00	00	00	00	00	00	00	00
+section		  |header	   |digital |analog joy	   |button pressures (0xFF = fully pressed)
+analog map	  |  		   |		|RX	RY	LX	LY | R	 L	 U	 D	Tri	Cir  X	Sqr	 L1	 R1	 L2	 R2
+
+
+
